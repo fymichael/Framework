@@ -46,8 +46,6 @@ public class FrontServlet extends HttpServlet {
     public void setUrl(String[] url) {
         this.url = url;
     }
-    
-    
 
     /**
      * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
@@ -73,20 +71,24 @@ public class FrontServlet extends HttpServlet {
             out.println("<h1>Servlet FrontServlet at " + request.getRequestURI() + "</h1>");
             afficherHashMap();
 
-            if(getUrl()[2] != null){
+            if (getUrl()[2] != null || getUrl()[2] != "") {
                 Object o = getClassFromAnnotation(getUrl()[2]);
                 if (o instanceof ModelView) {
                     ModelView mv = (ModelView) o;
-                    for (Map.Entry<String, Object> entry : mv.getData().entrySet()) {
-                        String key = entry.getKey();
-                        Object val = entry.getValue();
-                        
-                        System.out.println("Key :"+key);
-                        System.out.println("Value :"+val);
-                        
-                        request.setAttribute(key, val);
-                        request.getAttribute(key);
-                        
+                    if (mv.getData().isEmpty() == false) {
+                        for (Map.Entry<String, Object> entry : mv.getData().entrySet()) {
+                            String key = entry.getKey();
+                            Object val = entry.getValue();
+
+                            System.out.println("Key :" + key);
+                            System.out.println("Value :" + val);
+
+                            request.setAttribute(key, val);
+                            request.getAttribute(key);
+
+                        }
+                        RequestDispatcher dispatch = request.getRequestDispatcher(mv.getViewName());
+                        dispatch.forward(request, response);
                     }
                     RequestDispatcher dispatch = request.getRequestDispatcher(mv.getViewName());
                     dispatch.forward(request, response);
