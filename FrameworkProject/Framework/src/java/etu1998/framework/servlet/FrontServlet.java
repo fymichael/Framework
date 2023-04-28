@@ -16,6 +16,8 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.lang.reflect.Field;
+import java.sql.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
@@ -28,7 +30,7 @@ import java.util.logging.Logger;
  */
 public class FrontServlet extends HttpServlet {
 
-    HashMap<String, Mapping> MappingUrls = new HashMap();
+    HashMap<String, Mapping> MappingUrls = new HashMap<>();
     String[] url = null;
 
     public HashMap<String, Mapping> getMappingUrls() {
@@ -69,13 +71,18 @@ public class FrontServlet extends HttpServlet {
             out.println("</head>");
             out.println("<body>");
             out.println("<h1>Servlet FrontServlet at " + request.getRequestURI() + "</h1>");
+            for (HashMap.Entry<String, Mapping> en : this.MappingUrls.entrySet()) {
+                out.println(" Le nom de la classe : " + en.getValue().getClassName());
+                out.println(" La methode : " + en.getValue().getMethod());
+            }
             afficherHashMap();
-
-            if (getUrl()[2] != null || getUrl()[2] != "") {
+            if (getUrl()[2].equalsIgnoreCase("") == false) {
                 Object o = getClassFromAnnotation(getUrl()[2]);
+                //System.out.println("Objec : "+o.getClass().getSimpleName());
                 if (o instanceof ModelView) {
+                    //System.out.println("listelisisisnshshsh");
                     ModelView mv = (ModelView) o;
-                    if (mv.getData().isEmpty() == false) {
+                    if (mv.getData() != null) {
                         for (Map.Entry<String, Object> entry : mv.getData().entrySet()) {
                             String key = entry.getKey();
                             Object val = entry.getValue();
@@ -87,11 +94,53 @@ public class FrontServlet extends HttpServlet {
                             request.getAttribute(key);
 
                         }
+                    } else {
                         RequestDispatcher dispatch = request.getRequestDispatcher(mv.getViewName());
                         dispatch.forward(request, response);
                     }
-                    RequestDispatcher dispatch = request.getRequestDispatcher(mv.getViewName());
-                    dispatch.forward(request, response);
+                } else if (getUrl()[2].equalsIgnoreCase("emp-save") == true) {
+                    Map<String, String[]> map = request.getParameterMap();
+                    Annotation anno = new Annotation();
+                    Vector<Class> vec = anno.getClassFrom("etu1998.models");
+                    for (int i = 0; i < vec.size(); i++) {
+                        Object oj = vec.get(i).newInstance();
+                        Field[] field = oj.getClass().getDeclaredFields();
+                        for (Map.Entry<String, String[]> entry : map.entrySet()) {
+                            String name = entry.getKey();
+                            String[] value = entry.getValue();
+                            String setMeth = null;
+                            for (int z = 0; z < field.length; z++) {
+                                if (field[z].getName().equalsIgnoreCase(name) == true) {
+                                    for (int a = 0; a < value.length; a++) {
+                                        if (field[z].getType().getSimpleName().equalsIgnoreCase("String")) {
+                                            setMeth = "set" + name;
+                                            //System.out.println(setMeth);
+                                            vec.get(i).getDeclaredMethod(setMeth, String.class).invoke(oj, value[i]);
+                                        }
+                                        else if (field[z].getType().getSimpleName().equalsIgnoreCase("Date")) {
+                                            setMeth = "set" + name;
+                                            //System.out.println(setMeth);
+                                            vec.get(i).getDeclaredMethod(setMeth, Date.class).invoke(oj, Date.valueOf(value[i]));
+                                        }
+                                        else if (field[z].getType().getSimpleName().equalsIgnoreCase("int")) {
+                                            setMeth = "set" + name;
+                                            //System.out.println(setMeth);
+                                            vec.get(i).getDeclaredMethod(setMeth, int.class).invoke(oj, Integer.valueOf(value[i]));
+                                        }
+                                        else if (field[z].getType().getSimpleName().equalsIgnoreCase("double")) {
+                                            setMeth = "set" + name;
+                                            //System.out.println(setMeth);
+                                            vec.get(i).getDeclaredMethod(setMeth, double.class).invoke(oj, Double.valueOf(value[i]));
+                                        }
+                                        else{
+                                            System.out.println(field[z].getType().getSimpleName()+" Type de variable inconnu");
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        vec.get(i).getDeclaredMethod("save", new Class[0]).invoke(oj, new Object[0]);
+                    }
                 }
             }
             out.println("</body>");
@@ -122,6 +171,16 @@ public class FrontServlet extends HttpServlet {
     }
 //       
 
+    public Vector<String> getListeAttribute(Class<?> className) {
+        Vector<String> liste = new Vector<>();
+        for (int i = 0; i < className.getDeclaredFields().length; i++) {
+            //           System.out.println(className.getDeclaredFields()[i]);
+            System.out.println(className.getSimpleName());
+            liste.add(className.getDeclaredFields()[i].getName());
+        }
+        return liste;
+    }
+
     public void insertHashMap(Class<?> className) {
         for (int i = 0; i < className.getDeclaredMethods().length; i++) {
             //System.out.println(className.getDeclaredMethods()[i].getName());
@@ -140,10 +199,11 @@ public class FrontServlet extends HttpServlet {
         for (int e = 0; e < vec.size(); e++) {
             for (int i = 0; i < vec.get(e).getDeclaredMethods().length; i++) {
                 if (vec.get(e).getDeclaredMethods()[i].getAnnotation(Method.class) != null) {
+                    //System.out.println("etu1998.framework.servlet.FrontServlet.check1()"+vec.get(e).getDeclaredMethods()[i].getName());
                     if (vec.get(e).getDeclaredMethods()[i].getAnnotation(Method.class).name_method().equalsIgnoreCase(annotation) == true) {
-                        //out.println("etu1998.framework.servlet.FrontServlet.check3()"+vec.get(e).getDeclaredMethods()[i].getName());
+                        //System.out.println("etu1998.framework.servlet.FrontServlet.check3()"+vec.get(e).getDeclaredMethods()[i].getName());
                         o = vec.get(e).getDeclaredMethods()[i].invoke(vec.get(e).newInstance(), new Object[0]);
-                        System.out.println(o);
+                        System.out.println("Object : " + o);
                     }
                 }
             }
