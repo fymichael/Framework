@@ -7,15 +7,19 @@ package etu1998.framework.servlet;
 
 import etu1998.AllAnnotations.Method;
 import etu1998.framework.Annotation;
+import etu1998.framework.FileUpload;
 import etu1998.framework.Mapping;
 import etu1998.framework.ModelView;
 import jakarta.servlet.RequestDispatcher;
 import java.io.IOException;
 import java.io.PrintWriter;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.Part;
+import java.io.File;
 import java.lang.reflect.Field;
 import java.sql.Date;
 import java.util.HashMap;
@@ -28,6 +32,7 @@ import java.util.logging.Logger;
  *
  * @author P15B-79-FY
  */
+@MultipartConfig
 public class FrontServlet extends HttpServlet {
 
     HashMap<String, Mapping> MappingUrls = new HashMap<>();
@@ -93,6 +98,8 @@ public class FrontServlet extends HttpServlet {
                             request.setAttribute(key, val);
                             request.getAttribute(key);
 
+                            RequestDispatcher dispatch = request.getRequestDispatcher(mv.getViewName());
+                            dispatch.forward(request, response);
                         }
                     } else {
                         RequestDispatcher dispatch = request.getRequestDispatcher(mv.getViewName());
@@ -102,57 +109,64 @@ public class FrontServlet extends HttpServlet {
                     Map<String, String[]> map = request.getParameterMap();
                     Annotation anno = new Annotation();
                     Vector<Class> vec = anno.getClassFrom("etu1998.models");
+                    System.out.println(request.getParameter("langues[]"));
                     for (int i = 0; i < vec.size(); i++) {
                         Object oj = vec.get(i).newInstance();
                         Field[] field = oj.getClass().getDeclaredFields();
                         for (Map.Entry<String, String[]> entry : map.entrySet()) {
                             String name = entry.getKey();
+                            System.out.println("name : "+name+" request : "+request.getPart("fichier"));
                             String[] value = entry.getValue();
                             String setMeth = null;
                             for (int z = 0; z < field.length; z++) {
                                 if (field[z].getName().equalsIgnoreCase(name) == true) {
+                                    //System.out.println("index : "+name.indexOf('['));
                                     for (int a = 0; a < value.length; a++) {
+                                        //System.out.println(" value.length : "+value.length);
                                         if (field[z].getType().getSimpleName().equalsIgnoreCase("String")) {
                                             setMeth = "set" + name;
-                                            //System.out.println(setMeth);
-                                            vec.get(i).getDeclaredMethod(setMeth, String.class).invoke(oj, value[i]);
-                                        }
-                                        else if (field[z].getType().getSimpleName().equalsIgnoreCase("Date")) {
+                                            vec.get(i).getDeclaredMethod(setMeth, String.class).invoke(oj, value[a]);
+                                        } else if (field[z].getType().getSimpleName().equalsIgnoreCase("Date")) {
                                             setMeth = "set" + name;
-                                            //System.out.println(setMeth);
-                                            vec.get(i).getDeclaredMethod(setMeth, Date.class).invoke(oj, Date.valueOf(value[i]));
-                                        }
-                                        else if (field[z].getType().getSimpleName().equalsIgnoreCase("int")) {
+                                            vec.get(i).getDeclaredMethod(setMeth, Date.class).invoke(oj, Date.valueOf(value[a]));
+                                        } else if (field[z].getType().getSimpleName().equalsIgnoreCase("int")) {
                                             setMeth = "set" + name;
-                                            //System.out.println(setMeth);
-                                            vec.get(i).getDeclaredMethod(setMeth, int.class).invoke(oj, Integer.valueOf(value[i]));
-                                        }
-                                        else if (field[z].getType().getSimpleName().equalsIgnoreCase("double")) {
+                                            vec.get(i).getDeclaredMethod(setMeth, int.class).invoke(oj, Integer.valueOf(value[a]));
+                                        } else if (field[z].getType().getSimpleName().equalsIgnoreCase("double")) {
                                             setMeth = "set" + name;
-                                            //System.out.println(setMeth);
-                                            vec.get(i).getDeclaredMethod(setMeth, double.class).invoke(oj, Double.valueOf(value[i]));
-                                        }
-                                        else{
-                                            System.out.println(field[z].getType().getSimpleName()+" Type de variable inconnu");
+                                            vec.get(i).getDeclaredMethod(setMeth, double.class).invoke(oj, Double.valueOf(value[a]));
+                                        } else {
+                                            System.out.println(field[z].getType().getSimpleName() + " Type de variable inconnu");
                                         }
                                     }
+                                } else if (name.endsWith("[]")) {
+                                    String nameTab = name.substring(0, name.indexOf('['));
+                                    setMeth = "set" + nameTab;
+                                    String[] langues = request.getParameterValues(name);
+                                    vec.get(i).getDeclaredMethod(setMeth, String[].class).invoke(oj, (Object) langues);
+                                }
+                                else if(request.getPart("fichier") != null){
+                                    this.uploadFile("fichier", 100000, request ,response);
                                 }
                             }
                         }
+                        
                         vec.get(i).getDeclaredMethod("save", new Class[0]).invoke(oj, new Object[0]);
                     }
+                } else if (getUrl()[2].equalsIgnoreCase("emp-all") == true) {
+                    String value = request.getQueryString();
+                    String[] val = value.split("=");
+                    getClassFromAnnotationUrl(getUrl()[2], val[1]);
                 }
             }
             out.println("</body>");
             out.println("</html>");
         }
-
     }
 
     @Override
     public void init() {
         try {
-            //System.out.println("etu1998.framework.servlet.FrontServlet.init()");
             Annotation a = new Annotation();
 
             Vector<Class> vec = a.getClassFrom("etu1998.models");
@@ -170,6 +184,28 @@ public class FrontServlet extends HttpServlet {
         }
     }
 //       
+
+public void uploadFile(String nameFile, int maxSize, HttpServletRequest request, HttpServletResponse response) {
+    try {
+        Part filePart = request.getPart(nameFile);
+        
+        // Vérifier la taille du fichier
+        long fileSize = filePart.getSize();
+        if (fileSize > maxSize) {
+            // Gérer l'erreur de dépassement de la taille maximale
+            response.getWriter().println("La taille du fichier dépasse la limite maximale autorisée.");
+            return;
+        }
+        FileUpload fp = new FileUpload();
+        byte[] fileBytes = fp.readBytesFromInputStream(filePart.getInputStream());
+        
+        fp.setBytes(fileBytes);
+    }
+    catch(Exception e){
+        System.out.println(e.getMessage());
+    }
+}
+
 
     public Vector<String> getListeAttribute(Class<?> className) {
         Vector<String> liste = new Vector<>();
@@ -199,11 +235,46 @@ public class FrontServlet extends HttpServlet {
         for (int e = 0; e < vec.size(); e++) {
             for (int i = 0; i < vec.get(e).getDeclaredMethods().length; i++) {
                 if (vec.get(e).getDeclaredMethods()[i].getAnnotation(Method.class) != null) {
-                    //System.out.println("etu1998.framework.servlet.FrontServlet.check1()"+vec.get(e).getDeclaredMethods()[i].getName());
                     if (vec.get(e).getDeclaredMethods()[i].getAnnotation(Method.class).name_method().equalsIgnoreCase(annotation) == true) {
-                        //System.out.println("etu1998.framework.servlet.FrontServlet.check3()"+vec.get(e).getDeclaredMethods()[i].getName());
-                        o = vec.get(e).getDeclaredMethods()[i].invoke(vec.get(e).newInstance(), new Object[0]);
-                        System.out.println("Object : " + o);
+                        if (vec.get(e).getDeclaredMethods()[i].getParameters().length == 0) {
+                            o = vec.get(e).getDeclaredMethods()[i].invoke(vec.get(e).newInstance(), new Object[0]);
+                            System.out.println("Object : " + o);
+                        }
+                    }
+                }
+            }
+        }
+        return o;
+    }
+
+    public Object getClassFromAnnotationUrl(String annotation, String value) throws Exception {
+        Annotation a = new Annotation();
+        Object o = null;
+        Vector<Class> vec = a.getClassFrom("etu1998.models");
+        for (int e = 0; e < vec.size(); e++) {
+            for (int i = 0; i < vec.get(e).getDeclaredMethods().length; i++) {
+                if (vec.get(e).getDeclaredMethods()[i].getAnnotation(Method.class) != null) {
+                    if (vec.get(e).getDeclaredMethods()[i].getAnnotation(Method.class).name_method().equalsIgnoreCase(annotation) == true) {
+                        if (vec.get(e).getDeclaredMethods()[i].getParameters().length == 0) {
+                            o = vec.get(e).getDeclaredMethods()[i].invoke(vec.get(e).newInstance(), new Object[0]);
+                            System.out.println("Object : " + o);
+                        } else {
+                            for (int r = 0; r < vec.get(e).getDeclaredMethods()[i].getParameters().length; r++) {
+                                if (vec.get(e).getDeclaredMethods()[i].getParameters()[r].getType() == String.class) {
+                                    System.out.println("String : " + vec.get(e).getDeclaredMethods()[i].getParameters()[r].getName());
+                                    o = vec.get(e).getDeclaredMethod(vec.get(e).getDeclaredMethods()[i].getName(), String.class).invoke(vec.get(e).newInstance(), value);
+                                } else if (vec.get(e).getDeclaredMethods()[i].getParameters()[r].getType() == Date.class) {
+                                    System.out.println("Date : " + vec.get(e).getDeclaredMethods()[i].getParameters()[r].getName());
+                                    o = vec.get(e).getDeclaredMethod(vec.get(e).getDeclaredMethods()[i].getName(), Date.class).invoke(vec.get(e).newInstance(), Date.valueOf(value));
+                                } else if (vec.get(e).getDeclaredMethods()[i].getParameters()[r].getType() == int.class) {
+                                    System.out.println("Int : " + vec.get(e).getDeclaredMethods()[i].getParameters()[r].getName());
+                                    o = vec.get(e).getDeclaredMethod(vec.get(e).getDeclaredMethods()[i].getName(), int.class).invoke(vec.get(e).newInstance(), Integer.valueOf(value));
+                                } else if (vec.get(e).getDeclaredMethods()[i].getParameters()[r].getType() == double.class) {
+                                    System.out.println("Double : " + vec.get(e).getDeclaredMethods()[i].getParameters()[r].getName());
+                                    o = vec.get(e).getDeclaredMethod(vec.get(e).getDeclaredMethods()[i].getName(), double.class).invoke(vec.get(e).newInstance(), Double.valueOf(value));
+                                }
+                            }
+                        }
                     }
                 }
             }
