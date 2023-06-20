@@ -1,0 +1,5 @@
+-Java version jdk 8 et plus
+-les classes doivent se placer dans etu1998.models
+-les fonctions "set" du model doivent etre en miniscule
+-le nom du
+-les fonctions   

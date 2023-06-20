@@ -15,13 +15,22 @@ import java.util.Vector;
  * @author P15B-79-FY
  */
 public class Employee {
-    
+
     int id;
     String nom;
     String prenom;
     Date dateDeNaissance;
+    String[] langues = new String[3];
 
     public Employee() {
+    }
+
+    public String[] getLangues() {
+        return langues;
+    }
+
+    public void setlangues(String[] langues) {
+        this.langues = langues;
     }
 
     public Date getDateDeNaissance() {
@@ -44,6 +53,13 @@ public class Employee {
         return this.nom;
     }
 
+    @Method(name_method = "getEmpForm")
+    public ModelView getEmpForm() {
+        ModelView mv = new ModelView();
+        mv.setViewName("Form.jsp");
+        return mv;
+    }
+
     //@Method(name_method = "getListeEmp")
     public ModelView listeEmploye() {
         Vector<String> liste_emp = new Vector<>();
@@ -60,19 +76,15 @@ public class Employee {
         return this.nom;
     }
 
-    @Method(name_method = "getEmpForm")
-    public ModelView getForm() {
-        ModelView mv = new ModelView();
-        mv.setViewName("Form.jsp");
-        return mv;
-    }
-
     @Method(name_method = "emp-save")
     public void save() {
         System.out.println("l'id : " + this.getId());
         System.out.println("la date de naissance : " + this.getDateDeNaissance());
         System.out.println("le nom : " + this.getNom());
         System.out.println("le prenom : " + this.getPrenom());
+        for (String langue : this.getLangues()) {
+            System.out.println("vos langues : " + langue);
+        }
     }
 
     public void setnom(String nom) {
@@ -92,8 +104,11 @@ public class Employee {
         System.out.println("emp-add");
     }
 
-    // @Method(name_method = "emp-all")
-    public void emp_all() {
-        System.out.println("emp-all");
+    //@Method(name_method = "emp-all")
+    public ModelView emp_all(String nom) {
+        System.out.println("le nom de l'employee = " + nom);
+        ModelView mv = new ModelView();
+        mv.setViewName("Succes.jsp");
+        return mv;
     }
 }
