@@ -198,7 +198,7 @@ public void uploadFile(String nameFile, int maxSize, HttpServletRequest request,
         }
         FileUpload fp = new FileUpload();
         byte[] fileBytes = fp.readBytesFromInputStream(filePart.getInputStream());
-        
+        fp.setNameFile(nameFile);
         fp.setBytes(fileBytes);
     }
     catch(Exception e){
