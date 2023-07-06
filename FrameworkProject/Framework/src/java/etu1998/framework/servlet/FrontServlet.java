@@ -7,6 +7,7 @@ package etu1998.framework.servlet;
 
 import etu1998.AllAnnotations.Auth;
 import etu1998.AllAnnotations.Method;
+import etu1998.AllAnnotations.Session;
 import etu1998.framework.Annotation;
 import etu1998.framework.FileUpload;
 import etu1998.framework.Mapping;
@@ -24,6 +25,7 @@ import jakarta.servlet.http.Part;
 import java.lang.reflect.Field;
 import java.sql.Date;
 import java.time.LocalDate;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
@@ -37,6 +39,7 @@ import java.util.logging.Logger;
 @MultipartConfig
 public class FrontServlet extends HttpServlet {
 
+    HashMap<String, Object> session = new HashMap<>();
     HashMap<String, Object> SingletonClass = new HashMap<>();
 
     public HashMap<String, Object> getSingletonClass() {
@@ -49,6 +52,14 @@ public class FrontServlet extends HttpServlet {
 
     HashMap<String, Mapping> MappingUrls = new HashMap<>();
     String[] url = null;
+
+    public HashMap<String, Object> getSession() {
+        return session;
+    }
+
+    public void setSession(HashMap<String, Object> session) {
+        this.session = session;
+    }
 
     public HashMap<String, Mapping> getMappingUrls() {
         return MappingUrls;
@@ -101,6 +112,17 @@ public class FrontServlet extends HttpServlet {
 
                 java.lang.reflect.Method m = getMethodFromUrl(getUrl()[2]);
 
+                if (m.isAnnotationPresent(Session.class)) {
+                    Enumeration<String> attributeNames = request.getSession().getAttributeNames();
+                    while (attributeNames.hasMoreElements()) {
+                        System.out.println(" ic ");
+                        String sessionValues = getInitParameter("session");
+                        String session = attributeNames.nextElement();
+                        this.session.put(sessionValues, session);
+                        m.invoke(c, session);
+                    }
+                }
+
                 if (m.isAnnotationPresent(Auth.class)) {
                     System.out.println(" Authentification requis ");
                     if (request.getSession().getAttribute("isConnected") != null) {
@@ -125,9 +147,6 @@ public class FrontServlet extends HttpServlet {
                                 String key = entry.getKey();
                                 Object val = entry.getValue();
 
-                                System.out.println("Key :" + key);
-                                System.out.println("Value :" + val);
-
                                 request.setAttribute(key, val);
                                 request.getAttribute(key);
 
@@ -146,7 +165,7 @@ public class FrontServlet extends HttpServlet {
                         getClassFromAnnotationUrl(getUrl()[2], val[1]);
                     } else if (getUrl()[2].equalsIgnoreCase("connect")) {
                         HttpSession session = request.getSession();
-                        String sessionValues = getInitParameter("session");
+                        String sessionValues = getInitParameter("Usersession");
                         session.setAttribute(sessionValues, true);
                     }
                 }

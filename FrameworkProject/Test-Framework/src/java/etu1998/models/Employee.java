@@ -8,8 +8,11 @@ package etu1998.models;
 import etu1998.AllAnnotations.Auth;
 import etu1998.AllAnnotations.Method;
 import etu1998.AllAnnotations.Scope;
+import etu1998.AllAnnotations.Session;
 import etu1998.framework.ModelView;
 import java.sql.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Vector;
 
 /**
@@ -23,10 +26,19 @@ public class Employee {
     String prenom;
     Date dateDeNaissance;
     String[] langues = new String[3];
+    HashMap<String, Object> sessions = new HashMap<>();
 
     public Employee() {
     }
 
+    public HashMap<String, Object> getSessions() {
+        return sessions;
+    }
+
+    public void setSessions(HashMap<String, Object> sessions) {
+        this.sessions = sessions;
+    }
+    
     public String[] getLangues() {
         return langues;
     }
@@ -55,6 +67,20 @@ public class Employee {
         return this.nom;
     }
 
+    @Session
+    @Method(name_method = "testSession")
+    public void testSession(HashMap map){
+        this.setSessions(map);
+        for (Map.Entry<String, Object> entry : sessions.entrySet()) {
+        System.out.println("lsdihf");
+            Object key = entry.getKey();
+            Object val = entry.getValue();
+            
+            System.out.println((String) key);
+            
+        }
+    }
+    
     @Method(name_method = "connect")
     public void connect() {
         ModelView mv = new ModelView();
