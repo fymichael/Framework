@@ -12,8 +12,10 @@ import java.util.HashMap;
  * @author P15B-79-FY
  */
 public class ModelView {
+
     String viewName;
-    HashMap<String,Object> data;
+    HashMap<String, Object> data;
+    HashMap<String, Object> session;
 
     public HashMap<String, Object> getData() {
         return data;
@@ -31,13 +33,27 @@ public class ModelView {
         this.viewName = viewName;
     }
 
+    public HashMap<String, Object> getSession() {
+        return session;
+    }
+
+    public void setSession(HashMap<String, Object> session) {
+        this.session = session;
+    }
+
     public ModelView() {
     }
-    
-    public void addItems(String key,Object value){
-        HashMap<String,Object> has = new HashMap<>();
+
+    public void addItems(String key, Object value) {
+        HashMap<String, Object> has = new HashMap<>();
         has.put(key, value);
         this.setData(has);
     }
-    
+
+    public void addSession(String key, Object value) {
+        HashMap<String, Object> sess = new HashMap<>();
+        sess.put(key, value);
+        this.setData(sess);
+    }
+
 }
