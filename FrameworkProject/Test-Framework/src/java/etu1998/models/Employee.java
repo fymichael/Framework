@@ -5,7 +5,9 @@
  */
 package etu1998.models;
 
+import etu1998.AllAnnotations.Auth;
 import etu1998.AllAnnotations.Method;
+import etu1998.AllAnnotations.Scope;
 import etu1998.framework.ModelView;
 import java.sql.Date;
 import java.util.Vector;
@@ -53,6 +55,20 @@ public class Employee {
         return this.nom;
     }
 
+    @Method(name_method = "seConnecter")
+    public ModelView connect(){
+        ModelView mv = new ModelView();
+        mv.setViewName("Form.jsp");
+        mv.addSession("isConnected", true);
+        return mv;
+    }
+    
+    @Auth
+    @Method(name_method = "deleteEmp")
+    public void deleteEmployee(){
+        System.out.println(" Delete Employee ");
+    }
+    
     @Method(name_method = "getEmpForm")
     public ModelView getEmpForm() {
         ModelView mv = new ModelView();

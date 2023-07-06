@@ -6,10 +6,9 @@ package etu1998.framework;
 
 import etu1998.AllAnnotations.Fielder;
 import etu1998.AllAnnotations.Modele;
-import static jakarta.servlet.SessionTrackingMode.URL;
+import etu1998.AllAnnotations.Scope;
 import java.io.File;
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.Vector;
 
@@ -22,12 +21,13 @@ public class Annotation {
     public Annotation() {
     }
 
-    public void getAllAnnotationClass(Class<?>[] listeObject) {
-        for (Class<?> listeObject1 : listeObject) {
-            if (listeObject1.getAnnotation(Modele.class) != null) {
-                System.out.println(listeObject1.getSimpleName());
-            }
+    public boolean getAllAnnotedSingletonClass(Vector<Class> listeObject) {
+        for (int i = 0; i < listeObject.size(); i++) {
+            if(listeObject.get(i).getAnnotation(Scope.class) != null){
+                return true;
+            } 
         }
+        return false;
     }
 
     public void getAllAnnotationField(Class<?> listeObject) {
