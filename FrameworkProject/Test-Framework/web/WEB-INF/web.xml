@@ -4,8 +4,12 @@
         <servlet-name>FrontServlet</servlet-name>
         <servlet-class>etu1998.framework.servlet.FrontServlet</servlet-class>
         <init-param>
-            <param-name>session</param-name>
+            <param-name>Usersession</param-name>
             <param-value>isConnected</param-value>
+        </init-param>
+        <init-param>
+            <param-name>session</param-name>
+            <param-value>sessions</param-value>
         </init-param>
     </servlet>
     <servlet-mapping>
