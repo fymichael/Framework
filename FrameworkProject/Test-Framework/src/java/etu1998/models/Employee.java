@@ -55,20 +55,28 @@ public class Employee {
         return this.nom;
     }
 
-    @Method(name_method = "seConnecter")
-    public ModelView connect(){
+    @Method(name_method = "connect")
+    public void connect() {
         ModelView mv = new ModelView();
-        mv.setViewName("Form.jsp");
         mv.addSession("isConnected", true);
+    }
+
+    @Method(name_method = "login")
+    public ModelView login() {
+        ModelView mv = new ModelView();
+        mv.setViewName("Login.jsp");
         return mv;
     }
-    
+
     @Auth
     @Method(name_method = "deleteEmp")
-    public void deleteEmployee(){
-        System.out.println(" Delete Employee ");
+    public ModelView deleteEmployee() {
+        System.out.println(" delete employer ");
+        ModelView mv = new ModelView();
+        mv.setViewName("delete.jsp");
+        return mv;
     }
-    
+
     @Method(name_method = "getEmpForm")
     public ModelView getEmpForm() {
         ModelView mv = new ModelView();

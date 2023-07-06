@@ -101,48 +101,54 @@ public class FrontServlet extends HttpServlet {
 
                 java.lang.reflect.Method m = getMethodFromUrl(getUrl()[2]);
 
-                Object o = m.invoke(c.newInstance(), new Object[0]);
+                if (m.isAnnotationPresent(Auth.class)) {
+                    System.out.println(" Authentification requis ");
+                    if (request.getSession().getAttribute("isConnected") != null) {
+                        Object o = m.invoke(c.newInstance(), new Object[0]);
+                    } else {
+                        response.sendRedirect("ErrorAuth.jsp");
+                    }
+                } else {
 
-                if (this.getSingletonClass().containsValue(o)) {
-                    reset(c, o);
-                    System.out.println(" La methode  appeller : " + o);
-                    System.out.println(" Objet : " + o);
+                    Object o = m.invoke(c.newInstance(), new Object[0]);
 
-                }
+                    if (this.getSingletonClass().containsValue(o)) {
+                        reset(c, o);
 
-                //System.out.println("Objec : "+o.getClass().getSimpleName());
-                if (o instanceof ModelView) {
-                    ModelView mv = (ModelView) o;
-                    if (mv.getData() != null) {
-                        for (Map.Entry<String, Object> entry : mv.getData().entrySet()) {
-                            String key = entry.getKey();
-                            Object val = entry.getValue();
+                    }
 
-                            System.out.println("Key :" + key);
-                            System.out.println("Value :" + val);
+                    //System.out.println("Objec : "+o.getClass().getSimpleName());
+                    if (o instanceof ModelView) {
+                        ModelView mv = (ModelView) o;
+                        if (mv.getData() != null) {
+                            for (Map.Entry<String, Object> entry : mv.getData().entrySet()) {
+                                String key = entry.getKey();
+                                Object val = entry.getValue();
 
-                            request.setAttribute(key, val);
-                            request.getAttribute(key);
+                                System.out.println("Key :" + key);
+                                System.out.println("Value :" + val);
 
+                                request.setAttribute(key, val);
+                                request.getAttribute(key);
+
+                                RequestDispatcher dispatch = request.getRequestDispatcher(mv.getViewName());
+                                dispatch.forward(request, response);
+                            }
+                        } else {
                             RequestDispatcher dispatch = request.getRequestDispatcher(mv.getViewName());
                             dispatch.forward(request, response);
                         }
-                        if (m.isAnnotationPresent(Auth.class)) {
-                            System.out.println(" Authentification requise ");
-                            if (!mv.getSession().isEmpty()){
-                                System.out.println(" Authentifiaction reussi ");
-                            }
-                        }
-                    } else {
-                        RequestDispatcher dispatch = request.getRequestDispatcher(mv.getViewName());
-                        dispatch.forward(request, response);
+                    } else if (getUrl()[2].equalsIgnoreCase("emp-save") == true) {
+                        getRequestValues(request, response, m, c);
+                    } else if (getUrl()[2].equalsIgnoreCase("emp-all") == true) {
+                        String value = request.getQueryString();
+                        String[] val = value.split("=");
+                        getClassFromAnnotationUrl(getUrl()[2], val[1]);
+                    } else if (getUrl()[2].equalsIgnoreCase("connect")) {
+                        HttpSession session = request.getSession();
+                        String sessionValues = getInitParameter("session");
+                        session.setAttribute(sessionValues, true);
                     }
-                } else if (getUrl()[2].equalsIgnoreCase("emp-save") == true) {
-                    getRequestValues(request, response, m, c);
-                } else if (getUrl()[2].equalsIgnoreCase("emp-all") == true) {
-                    String value = request.getQueryString();
-                    String[] val = value.split("=");
-                    getClassFromAnnotationUrl(getUrl()[2], val[1]);
                 }
             }
             out.println("</body>");
