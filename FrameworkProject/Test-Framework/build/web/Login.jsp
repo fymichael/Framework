@@ -14,7 +14,7 @@
     <body>
         <h1>Hello World!</h1>
         <form action="connect" method="post" enctype="multipart/form-data">
-            <p> <input type="nom" name="id" placeholder="username"> </p>
+            <p> <input type="text" name="nom" placeholder="username"> </p>
             <p> <input type="submit" value="Save"> </p>
         </form>
     </body>
