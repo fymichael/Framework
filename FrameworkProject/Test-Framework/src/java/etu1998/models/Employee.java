@@ -133,7 +133,7 @@ public class Employee {
         liste_emp.add("Rasoa");
         ModelView mv = new ModelView();
         mv.setViewName("Liste.jsp");
-        mv.setIsJson(true);
+        //mv.setIsJson(true);
         mv.addItems("Liste_emp", liste_emp);
         return mv;
     }

@@ -122,8 +122,6 @@ public class FrontServlet extends HttpServlet {
                         Gson gson = new Gson();
                         String json = gson.toJson(obj.getClass().getSimpleName());
                         request.setAttribute("json", json);
-                        RequestDispatcher dispatch = request.getRequestDispatcher("TestJson.jsp");
-                        dispatch.forward(request, response);
                         out.println(json);
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -149,7 +147,7 @@ public class FrontServlet extends HttpServlet {
                     }
                 } else {
 
-                    Object o = m.invoke(object, new Object[0]);
+                    Object o = m.invoke(object);
 
                     if (this.getSingletonClass().containsValue(o)) {
                         reset(c, o);
@@ -182,8 +180,6 @@ public class FrontServlet extends HttpServlet {
                                     String json = gson.toJson(mv.getData());
                                     out.println(json);
                                     request.setAttribute("jsonHashMap", json);
-                                    RequestDispatcher dispatch = request.getRequestDispatcher("TestJson.jsp");
-                                    dispatch.forward(request, response);
                                 } catch (Exception e) {
                                     e.printStackTrace();
                                 }
@@ -199,18 +195,14 @@ public class FrontServlet extends HttpServlet {
                                     dispatch.forward(request, response);
                                 }
                             }
+                        } else {
+                            RequestDispatcher dispatch = request.getRequestDispatcher(mv.getViewName());
+                            dispatch.forward(request, response);
                         }
-                    } else if (getUrl()[2].equalsIgnoreCase("emp-save") == true) {
-                        getRequestValues(request, response, m, c);
-                    } else if (getUrl()[2].equalsIgnoreCase("emp-all") == true) {
-                        String value = request.getQueryString();
-                        String[] val = value.split("=");
-                        getClassFromAnnotationUrl(getUrl()[2], val[1]);
-                    } else if (getUrl()[2].equalsIgnoreCase("connect")) {
+                    } else {
+                        System.out.println("ato amzay");
                         HttpSession session = request.getSession();
-                        String sessionValues = getInitParameter("Usersession");
-                        System.out.println("init : " + sessionValues);
-                        session.setAttribute(sessionValues, true);
+                        getRequestValues(request, response, m, c, session);
                     }
                 }
             }
@@ -267,44 +259,57 @@ public class FrontServlet extends HttpServlet {
         }
     }
 
-    public void getRequestValues(HttpServletRequest request, HttpServletResponse response, java.lang.reflect.Method m, Class c) throws InstantiationException, IllegalAccessException, Exception {
+    public void getRequestValues(HttpServletRequest request, HttpServletResponse response, java.lang.reflect.Method m, Class c, HttpSession session) throws InstantiationException, IllegalAccessException, Exception {
         Map<String, String[]> map = request.getParameterMap();
         Annotation anno = new Annotation();
         Object oj = c.newInstance();
         Field[] field = oj.getClass().getDeclaredFields();
 
-        for (Map.Entry<String, String[]> entry : map.entrySet()) {
-            String[] value = entry.getValue();
-            String name = entry.getKey();
-            String setMeth = null;
-            for (int z = 0; z < field.length; z++) {
-                if (field[z].getName().equalsIgnoreCase(name) == true) {
-                    for (int a = 0; a < value.length; a++) {
-                        if (field[z].getType().getSimpleName().equalsIgnoreCase("String")) {
-                            setMeth = "set" + name;
-                            c.getDeclaredMethod(setMeth, String.class).invoke(oj, value[a]);
-                        } else if (field[z].getType().getSimpleName().equalsIgnoreCase("Date")) {
-                            setMeth = "set" + name;
-                            c.getDeclaredMethod(setMeth, Date.class).invoke(oj, Date.valueOf(value[a]));
-                        } else if (field[z].getType().getSimpleName().equalsIgnoreCase("int")) {
-                            setMeth = "set" + name;
-                            c.getDeclaredMethod(setMeth, int.class).invoke(oj, Integer.valueOf(value[a]));
-                        } else if (field[z].getType().getSimpleName().equalsIgnoreCase("double")) {
-                            setMeth = "set" + name;
-                            c.getDeclaredMethod(setMeth, double.class).invoke(oj, Double.valueOf(value[a]));
-                        } else {
-                            throw new Exception(" Type de variable inconnu");
+        if (request.getQueryString() == null || "".equals(request.getQueryString())) {
+            if (!map.isEmpty()) {
+                for (Map.Entry<String, String[]> entry : map.entrySet()) {
+                    String[] value = entry.getValue();
+                    String name = entry.getKey();
+                    String setMeth = null;
+                    for (int z = 0; z < field.length; z++) {
+                        if (field[z].getName().equalsIgnoreCase(name) == true) {
+                            for (int a = 0; a < value.length; a++) {
+                                if (field[z].getType().getSimpleName().equalsIgnoreCase("String")) {
+                                    setMeth = "set" + name;
+                                    c.getDeclaredMethod(setMeth, String.class).invoke(oj, value[a]);
+                                } else if (field[z].getType().getSimpleName().equalsIgnoreCase("Date")) {
+                                    setMeth = "set" + name;
+                                    c.getDeclaredMethod(setMeth, Date.class).invoke(oj, Date.valueOf(value[a]));
+                                } else if (field[z].getType().getSimpleName().equalsIgnoreCase("int")) {
+                                    setMeth = "set" + name;
+                                    c.getDeclaredMethod(setMeth, int.class).invoke(oj, Integer.valueOf(value[a]));
+                                } else if (field[z].getType().getSimpleName().equalsIgnoreCase("double")) {
+                                    setMeth = "set" + name;
+                                    c.getDeclaredMethod(setMeth, double.class).invoke(oj, Double.valueOf(value[a]));
+                                } else {
+                                    throw new Exception(" Type de variable inconnu");
+                                }
+                            }
+                        } else if (name.endsWith("[]")) {
+                            String nameTab = name.substring(0, name.indexOf('['));
+                            setMeth = "set" + nameTab;
+                            String[] values = request.getParameterValues(name);
+                            c.getDeclaredMethod(setMeth, String[].class).invoke(oj, (Object) values);
+                        } else if (request.getPart("fichier") != null) {
+                            this.uploadFile("fichier", 100000, request, response);
                         }
                     }
-                } else if (name.endsWith("[]")) {
-                    String nameTab = name.substring(0, name.indexOf('['));
-                    setMeth = "set" + nameTab;
-                    String[] values = request.getParameterValues(name);
-                    c.getDeclaredMethod(setMeth, String[].class).invoke(oj, (Object) values);
-                } else if (request.getPart("fichier") != null) {
-                    this.uploadFile("fichier", 100000, request, response);
+                }
+                if (session.getAttribute("Usersession") == null) {
+                    String sessionValues = getInitParameter("Usersession");
+                    session.setAttribute(sessionValues, true);
                 }
             }
+        } else if (request.getQueryString() != null || request.getQueryString() != "") {
+            System.out.println(" Tokny ato 1");
+            String value = request.getQueryString();
+            String[] val = value.split("=");
+            getClassFromAnnotationUrl(getUrl()[2], val[1]);
         }
         c.getDeclaredMethod(m.getName(), new Class[0]).invoke(oj, new Object[0]);
     }
@@ -364,6 +369,8 @@ public class FrontServlet extends HttpServlet {
             byte[] fileBytes = fp.readBytesFromInputStream(filePart.getInputStream());
 
             fp.setBytes(fileBytes);
+
+            System.out.println(fileBytes.length);
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
