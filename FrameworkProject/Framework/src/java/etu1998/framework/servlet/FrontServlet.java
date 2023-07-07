@@ -41,6 +41,15 @@ public class FrontServlet extends HttpServlet {
 
     HashMap<String, Object> session = new HashMap<>();
     HashMap<String, Object> SingletonClass = new HashMap<>();
+    String nom;
+
+    public String getNom() {
+        return nom;
+    }
+
+    public void setNom(String nom) {
+        this.nom = nom;
+    }
 
     public HashMap<String, Object> getSingletonClass() {
         return SingletonClass;
@@ -112,62 +121,75 @@ public class FrontServlet extends HttpServlet {
 
                 java.lang.reflect.Method m = getMethodFromUrl(getUrl()[2]);
 
-                if (m.isAnnotationPresent(Session.class)) {
-                    Enumeration<String> attributeNames = request.getSession().getAttributeNames();
-                    while (attributeNames.hasMoreElements()) {
-                        System.out.println(" ic ");
-                        String sessionValues = getInitParameter("session");
-                        String session = attributeNames.nextElement();
-                        this.session.put(sessionValues, session);
-                        m.invoke(c, session);
-                    }
-                }
+                Object ob = c.newInstance();
 
                 if (m.isAnnotationPresent(Auth.class)) {
-                    System.out.println(" Authentification requis ");
-                    if (request.getSession().getAttribute("isConnected") != null) {
-                        Object o = m.invoke(c.newInstance(), new Object[0]);
+                    if (m.getAnnotation(Auth.class).value().equalsIgnoreCase(this.getNom())) {
+                        m.invoke(ob, new Object[0]);
+                        setNom("");
+                        response.sendRedirect("Succes.jsp");
                     } else {
                         response.sendRedirect("ErrorAuth.jsp");
                     }
-                } else {
-
-                    Object o = m.invoke(c.newInstance(), new Object[0]);
-
-                    if (this.getSingletonClass().containsValue(o)) {
-                        reset(c, o);
-
+                }
+                if (m.isAnnotationPresent(Session.class)) {
+                    Enumeration<String> attributeNames = request.getSession().getAttributeNames();
+                    while (attributeNames.hasMoreElements()) {
+                        String sessionValues = getInitParameter("session");
+                        String session = attributeNames.nextElement();
+                        this.session.put(sessionValues, session);
                     }
 
-                    //System.out.println("Objec : "+o.getClass().getSimpleName());
-                    if (o instanceof ModelView) {
-                        ModelView mv = (ModelView) o;
-                        if (mv.getData() != null) {
-                            for (Map.Entry<String, Object> entry : mv.getData().entrySet()) {
-                                String key = entry.getKey();
-                                Object val = entry.getValue();
+                    Class<?> annotatedClass = m.getDeclaringClass();
 
-                                request.setAttribute(key, val);
-                                request.getAttribute(key);
+                    try {
+                        java.lang.reflect.Method testSessionMethod = annotatedClass.getMethod("testSession", HashMap.class);
 
-                                RequestDispatcher dispatch = request.getRequestDispatcher(mv.getViewName());
-                                dispatch.forward(request, response);
-                            }
-                        } else {
+                        Object annotatedObject = annotatedClass.getDeclaredConstructor().newInstance();
+
+                        testSessionMethod.invoke(annotatedObject, this.session);
+                    } catch (NoSuchMethodException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                Object o = m.invoke(ob, new Object[0]);
+
+                if (this.getSingletonClass().containsValue(o)) {
+                    reset(c, o);
+                }
+
+                //System.out.println("Objec : "+o.getClass().getSimpleName());
+                if (o instanceof ModelView) {
+                    ModelView mv = (ModelView) o;
+                    if (mv.getData() != null) {
+                        for (Map.Entry<String, Object> entry : mv.getData().entrySet()) {
+                            String key = entry.getKey();
+                            Object val = entry.getValue();
+
+                            request.setAttribute(key, val);
+                            request.getAttribute(key);
+
                             RequestDispatcher dispatch = request.getRequestDispatcher(mv.getViewName());
                             dispatch.forward(request, response);
                         }
-                    } else if (getUrl()[2].equalsIgnoreCase("emp-save") == true) {
-                        getRequestValues(request, response, m, c);
-                    } else if (getUrl()[2].equalsIgnoreCase("emp-all") == true) {
-                        String value = request.getQueryString();
-                        String[] val = value.split("=");
-                        getClassFromAnnotationUrl(getUrl()[2], val[1]);
-                    } else if (getUrl()[2].equalsIgnoreCase("connect")) {
-                        HttpSession session = request.getSession();
-                        String sessionValues = getInitParameter("Usersession");
-                        session.setAttribute(sessionValues, true);
+                    } else {
+                        RequestDispatcher dispatch = request.getRequestDispatcher(mv.getViewName());
+                        dispatch.forward(request, response);
                     }
+                } else if (getUrl()[2].equalsIgnoreCase("emp-save") == true) {
+                    getRequestValues(request, response, m, c, ob);
+                } else if (getUrl()[2].equalsIgnoreCase("emp-all") == true) {
+                    String value = request.getQueryString();
+                    String[] val = value.split("=");
+                    getClassFromAnnotationUrl(getUrl()[2], val[1]);
+                } else if (getUrl()[2].equalsIgnoreCase("connect")) {
+                    HttpSession session = request.getSession();
+                    String nom = request.getParameter("nom");
+                    setNom(nom);
+                    String sessionValues = getInitParameter("Usersession");
+                    session.setAttribute(sessionValues, nom);
+                    //System.out.println(" le nom : " + nom + " le sessionValues : " + sessionValues);
                 }
             }
             out.println("</body>");
@@ -223,10 +245,9 @@ public class FrontServlet extends HttpServlet {
         }
     }
 
-    public void getRequestValues(HttpServletRequest request, HttpServletResponse response, java.lang.reflect.Method m, Class c) throws InstantiationException, IllegalAccessException, Exception {
+    public void getRequestValues(HttpServletRequest request, HttpServletResponse response, java.lang.reflect.Method m, Class c, Object oj) throws InstantiationException, IllegalAccessException, Exception {
         Map<String, String[]> map = request.getParameterMap();
         Annotation anno = new Annotation();
-        Object oj = c.newInstance();
         Field[] field = oj.getClass().getDeclaredFields();
 
         for (Map.Entry<String, String[]> entry : map.entrySet()) {

@@ -76,7 +76,7 @@ public class Employee {
             Object key = entry.getKey();
             Object val = entry.getValue();
             
-            System.out.println((String) key);
+            System.out.println(" testSessions : "+(String) key);
             
         }
     }
@@ -94,7 +94,7 @@ public class Employee {
         return mv;
     }
 
-    @Auth
+    @Auth(value = "Admin")
     @Method(name_method = "deleteEmp")
     public ModelView deleteEmployee() {
         System.out.println(" delete employer ");
