@@ -5,8 +5,10 @@
  */
 package etu1998.framework.servlet;
 
+import com.google.gson.Gson;
 import etu1998.AllAnnotations.Auth;
 import etu1998.AllAnnotations.Method;
+import etu1998.AllAnnotations.RestApi;
 import etu1998.AllAnnotations.Session;
 import etu1998.framework.Annotation;
 import etu1998.framework.FileUpload;
@@ -121,61 +123,103 @@ public class FrontServlet extends HttpServlet {
 
                 java.lang.reflect.Method m = getMethodFromUrl(getUrl()[2]);
 
-                Object ob = c.newInstance();
+                Object object = c.newInstance();
 
-                if (m.isAnnotationPresent(Auth.class)) {
-                    if (m.getAnnotation(Auth.class).value().equalsIgnoreCase(this.getNom())) {
-                        m.invoke(ob, new Object[0]);
-                        setNom("");
-                        response.sendRedirect("Succes.jsp");
-                    } else {
-                        response.sendRedirect("ErrorAuth.jsp");
+                if (m.isAnnotationPresent(RestApi.class)) {
+                    Object obj = m.invoke(object);
+                    try {
+                        Gson gson = new Gson();
+                        String json = gson.toJson(obj.getClass().getSimpleName());
+                        request.setAttribute("json", json);
+                        RequestDispatcher dispatch = request.getRequestDispatcher("TestJson.jsp");
+                        dispatch.forward(request, response);
+                        out.println(json);
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
                 }
+
                 if (m.isAnnotationPresent(Session.class)) {
                     Enumeration<String> attributeNames = request.getSession().getAttributeNames();
                     while (attributeNames.hasMoreElements()) {
                         String sessionValues = getInitParameter("session");
                         String session = attributeNames.nextElement();
                         this.session.put(sessionValues, session);
-                    }
-
-                    Class<?> annotatedClass = m.getDeclaringClass();
-
-                    try {
-                        java.lang.reflect.Method testSessionMethod = annotatedClass.getMethod("testSession", HashMap.class);
-
-                        Object annotatedObject = annotatedClass.getDeclaredConstructor().newInstance();
-
-                        testSessionMethod.invoke(annotatedObject, this.session);
-                    } catch (NoSuchMethodException e) {
-                        e.printStackTrace();
+                        m.invoke(object, session);
                     }
                 }
 
-                Object o = m.invoke(ob, new Object[0]);
-
-                if (this.getSingletonClass().containsValue(o)) {
-                    reset(c, o);
-                }
-
-                //System.out.println("Objec : "+o.getClass().getSimpleName());
-                if (o instanceof ModelView) {
-                    ModelView mv = (ModelView) o;
-                    if (mv.getData() != null) {
-                        for (Map.Entry<String, Object> entry : mv.getData().entrySet()) {
-                            String key = entry.getKey();
-                            Object val = entry.getValue();
-
-                            request.setAttribute(key, val);
-                            request.getAttribute(key);
-
-                            RequestDispatcher dispatch = request.getRequestDispatcher(mv.getViewName());
-                            dispatch.forward(request, response);
-                        }
+                if (m.isAnnotationPresent(Auth.class)) {
+                    System.out.println(" Authentification requis ");
+                    if (request.getSession().getAttribute("isConnected") != null) {
+                        Object o = m.invoke(object, new Object[0]);
                     } else {
-                        RequestDispatcher dispatch = request.getRequestDispatcher(mv.getViewName());
-                        dispatch.forward(request, response);
+                        response.sendRedirect("ErrorAuth.jsp");
+                    }
+                } else {
+
+                    Object o = m.invoke(object, new Object[0]);
+
+                    if (this.getSingletonClass().containsValue(o)) {
+                        reset(c, o);
+                    }
+
+                    if (o instanceof ModelView) {
+                        ModelView mv = (ModelView) o;
+                        if (mv.isInvalidateSession()) {
+                            System.out.println(" delete session :" + mv.isInvalidateSession());
+                            HttpSession session = request.getSession();
+                            session.invalidate();
+                        }
+                        if (!mv.getListSession().isEmpty()) {
+                            System.out.println(" la taille du session a supprimer :" + mv.getListSession().size());
+                            HttpSession session = request.getSession();
+                            for (int i = 0; i < mv.getListSession().size(); i++) {
+                                Enumeration<String> attributeNames = request.getSession().getAttributeNames();
+                                while (attributeNames.hasMoreElements()) {
+                                    if (attributeNames.equals(mv.getListSession().get(i))) {
+                                        System.out.println(" ato ");
+                                        session.invalidate();
+                                    }
+                                }
+                            }
+                        }
+                        if (mv.getData() != null) {
+                            if (mv.IsJson()) {
+                                try {
+                                    Gson gson = new Gson();
+                                    String json = gson.toJson(mv.getData());
+                                    out.println(json);
+                                    request.setAttribute("jsonHashMap", json);
+                                    RequestDispatcher dispatch = request.getRequestDispatcher("TestJson.jsp");
+                                    dispatch.forward(request, response);
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
+                            } else {
+                                for (Map.Entry<String, Object> entry : mv.getData().entrySet()) {
+                                    String key = entry.getKey();
+                                    Object val = entry.getValue();
+
+                                    request.setAttribute(key, val);
+                                    request.getAttribute(key);
+
+                                    RequestDispatcher dispatch = request.getRequestDispatcher(mv.getViewName());
+                                    dispatch.forward(request, response);
+                                }
+                            }
+                        }
+                    } else if (getUrl()[2].equalsIgnoreCase("emp-save") == true) {
+                        getRequestValues(request, response, m, c);
+                    } else if (getUrl()[2].equalsIgnoreCase("emp-all") == true) {
+                        String value = request.getQueryString();
+                        String[] val = value.split("=");
+                        getClassFromAnnotationUrl(getUrl()[2], val[1]);
+                    } else if (getUrl()[2].equalsIgnoreCase("connect")) {
+                        HttpSession session = request.getSession();
+                        String sessionValues = getInitParameter("Usersession");
+                        System.out.println("init : " + sessionValues);
+                        session.setAttribute(sessionValues, true);
                     }
                 } else if (getUrl()[2].equalsIgnoreCase("emp-save") == true) {
                     getRequestValues(request, response, m, c, ob);
@@ -220,7 +264,7 @@ public class FrontServlet extends HttpServlet {
             }
         }
     }
-//       
+    //       
 
     public void reset(Class c, Object o) throws Exception {
         Field[] listeAttribut = c.getDeclaredFields();

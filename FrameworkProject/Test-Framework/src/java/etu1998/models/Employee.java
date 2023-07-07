@@ -7,6 +7,7 @@ package etu1998.models;
 
 import etu1998.AllAnnotations.Auth;
 import etu1998.AllAnnotations.Method;
+import etu1998.AllAnnotations.RestApi;
 import etu1998.AllAnnotations.Scope;
 import etu1998.AllAnnotations.Session;
 import etu1998.framework.ModelView;
@@ -38,7 +39,7 @@ public class Employee {
     public void setSessions(HashMap<String, Object> sessions) {
         this.sessions = sessions;
     }
-    
+
     public String[] getLangues() {
         return langues;
     }
@@ -69,18 +70,32 @@ public class Employee {
 
     @Session
     @Method(name_method = "testSession")
-    public void testSession(HashMap map){
+    public void testSession(HashMap map) {
         this.setSessions(map);
         for (Map.Entry<String, Object> entry : sessions.entrySet()) {
-        System.out.println("lsdihf");
+            System.out.println("lsdihf");
             Object key = entry.getKey();
             Object val = entry.getValue();
-            
-            System.out.println(" testSessions : "+(String) key);
-            
+
+            System.out.println((String) key);
+
         }
     }
-    
+
+    @Method(name_method = "deleteAllSession")
+    public ModelView deleteAllSession() {
+        ModelView mv = new ModelView();
+        mv.setInvalidateSession(true);
+        return mv;
+    }
+
+    @Method(name_method = "deleteSpecificSession")
+    public ModelView deleteSpecificSession() {
+        ModelView mv = new ModelView();
+        mv.getListSession().add("Usersession");
+        return mv;
+    }
+
     @Method(name_method = "connect")
     public void connect() {
         ModelView mv = new ModelView();
@@ -110,7 +125,7 @@ public class Employee {
         return mv;
     }
 
-    //@Method(name_method = "getListeEmp")
+    @Method(name_method = "getListeEmp")
     public ModelView listeEmploye() {
         Vector<String> liste_emp = new Vector<>();
         liste_emp.add("Rakoto");
@@ -118,12 +133,19 @@ public class Employee {
         liste_emp.add("Rasoa");
         ModelView mv = new ModelView();
         mv.setViewName("Liste.jsp");
+        mv.setIsJson(true);
         mv.addItems("Liste_emp", liste_emp);
         return mv;
     }
 
     public String getNom() {
         return this.nom;
+    }
+
+    @RestApi
+    @Method(name_method = "restApi")
+    public Object restApi() {
+        return this;
     }
 
     @Method(name_method = "emp-save")
@@ -154,7 +176,7 @@ public class Employee {
         System.out.println("emp-add");
     }
 
-    //@Method(name_method = "emp-all")
+    @Method(name_method = "emp-all")
     public ModelView emp_all(String nom) {
         System.out.println("le nom de l'employee = " + nom);
         ModelView mv = new ModelView();
