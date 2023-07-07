@@ -43,15 +43,6 @@ public class FrontServlet extends HttpServlet {
 
     HashMap<String, Object> session = new HashMap<>();
     HashMap<String, Object> SingletonClass = new HashMap<>();
-    String nom;
-
-    public String getNom() {
-        return nom;
-    }
-
-    public void setNom(String nom) {
-        this.nom = nom;
-    }
 
     public HashMap<String, Object> getSingletonClass() {
         return SingletonClass;
@@ -221,19 +212,6 @@ public class FrontServlet extends HttpServlet {
                         System.out.println("init : " + sessionValues);
                         session.setAttribute(sessionValues, true);
                     }
-                } else if (getUrl()[2].equalsIgnoreCase("emp-save") == true) {
-                    getRequestValues(request, response, m, c, ob);
-                } else if (getUrl()[2].equalsIgnoreCase("emp-all") == true) {
-                    String value = request.getQueryString();
-                    String[] val = value.split("=");
-                    getClassFromAnnotationUrl(getUrl()[2], val[1]);
-                } else if (getUrl()[2].equalsIgnoreCase("connect")) {
-                    HttpSession session = request.getSession();
-                    String nom = request.getParameter("nom");
-                    setNom(nom);
-                    String sessionValues = getInitParameter("Usersession");
-                    session.setAttribute(sessionValues, nom);
-                    //System.out.println(" le nom : " + nom + " le sessionValues : " + sessionValues);
                 }
             }
             out.println("</body>");
@@ -289,9 +267,10 @@ public class FrontServlet extends HttpServlet {
         }
     }
 
-    public void getRequestValues(HttpServletRequest request, HttpServletResponse response, java.lang.reflect.Method m, Class c, Object oj) throws InstantiationException, IllegalAccessException, Exception {
+    public void getRequestValues(HttpServletRequest request, HttpServletResponse response, java.lang.reflect.Method m, Class c) throws InstantiationException, IllegalAccessException, Exception {
         Map<String, String[]> map = request.getParameterMap();
         Annotation anno = new Annotation();
+        Object oj = c.newInstance();
         Field[] field = oj.getClass().getDeclaredFields();
 
         for (Map.Entry<String, String[]> entry : map.entrySet()) {
